@@ -1,16 +1,15 @@
-# Prosjekt 2 Statlær
-Håvard, Jørgen, Oliver
+# Project TMA4212 - NumDiff
 
 
-## How  to git:
+## How  to git for dummies:
 Open terminal, and navigate to directory where you want to put this directory
 type:
 
 ```
-git clone https://github.com/jorgenriseth/statlaer_project1.git
+git clone https://github.com/jorgenriseth/tma4212-project.git
 ```
 
-This will clone the repository into a directory called "statlaer_project1". Start working as usual in this directory. When you feel like you have done a contribution that we should save,enter:
+This will clone the repository into a directory called "tma4212-project". Start working as usual in this directory. When you feel like you have done a contribution that we should save,enter:
 
 ```
 git status 
