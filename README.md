@@ -2,8 +2,9 @@
 
 
 ## How  to git for dummies:
-Open terminal, and navigate to directory where you want to put this directory
-type:
+Open terminal, and navigate to directory where you want to put this directory.
+
+In terminal:
 
 ```
 git clone https://github.com/jorgenriseth/tma4212-project.git
