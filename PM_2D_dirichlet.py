@@ -12,9 +12,11 @@ def load_image( infilename , size = None) :
         img = img.resize(size)
     data = np.asarray( img, dtype="float32" )
     return data
-
+    
+    
+    
 # Display image given vector representation, and dimensions
-def array_to_image(V, n, m):
+def array_to_image(V, m, n):
     if len(V.shape) == 2:
         image = V.reshape((m, n, 3))
         return Image.fromarray(image.astype("uint8"), "RGB")
@@ -22,9 +24,9 @@ def array_to_image(V, n, m):
     else:
         image = V.reshape((m, n))
         return Image.fromarray(image.astype("uint8"), "L")
-
-
-
+        
+        
+        
 # Generate image of 4 scaled squares
 def generate_squares2D(N, M):
     I = np.zeros((N+2, M+2))
@@ -34,15 +36,17 @@ def generate_squares2D(N, M):
     I[-(N//2+1):, -(M//2+1):] = 230
     return I
 
+
+
 # Add noise to all interior points of an image
 def add_noise2D(I, scale = 10):
     if len(I.shape) == 3:
-        N, M = I[:, :, 0].shape
+        M, N = I[:, :, 0].shape
     else:
-        N, M = I.shape
+        M, N = I.shape
 
-    N -= 2
     M -= 2
+    N -= 2
 
     if len(I.shape) == 3:
         I[1:-1, 1:-1] += np.random.randint(-scale, scale, size = (M, N, 3))
@@ -50,37 +54,55 @@ def add_noise2D(I, scale = 10):
         I[1:-1, 1:-1] += np.random.randint(-scale, scale, size = (M,N))
     return np.minimum(np.maximum(0, I), 255)
     
+    
+    
+    
 # Generate square image, with noise
 def generate_random2D(M, N, scale = 10):
     I = generate_squares2D(N, M)
     add_noise2D(I)
     return I
 
-def diffX(M, N, scheme = "central"):
-    K = (M+2)*(N+2)
-    Dx = np.zeros((K, K))
-    dx = 1/(M+1)
-    
-    if scheme == "central":
-        Bx = (-1 * np.eye(M+2, k = -1) + np.eye(M+2, k = 1))
-        Bx[0, :3] = [-3, 4, -1]
-        Bx[-1, -3:] = [1, -4, 3]
-        Bx /= (2*dx)
-        
-elif scheme == "forward":
-    Bx = (-1 * np.eye(M+2) + np.eye(M+2, k = 1))
-        Bx[-1, -2:] = [-1, 1]
-        Bx /= dx
+
+
+# Plot progression of image in 6 pictures.
+def before_after_2D(U, N, M, savename = None, display = True):
+    skip = U.shape[0]//5
+    plt.figure()
+    if (len(U.shape) == 3):
+        plt.subplot(2, 3, 1)
+        im = array_to_image(U[0], N+2, M+2)
+        plt.imshow(im)
+        for i in range(2, 6):            
+            plt.subplot(2, 3, i)
+            im = array_to_image(U[(i-1)*skip], N+2, M+2)
+            plt.imshow(im)
+        plt.subplot(236)
+        im = array_to_image(U[-1], N+2, M+2)
+        plt.imshow(im)
+
     else:
-        raise Exception("Invalid scheme in Dx")    
+        plt.subplot(2, 3, 1)
+        im = array_to_image(U[0], N+2, M+2)
+        plt.imshow(im, cmap = "gray")
+        for i in range(2, 6):            
+            plt.subplot(2, 3, i)
+            im = array_to_image(U[(i-1)*skip], N+2, M+2)
+            plt.imshow(im, cmap = "gray")
+        plt.subplot(2, 3, 6)
+        im = array_to_image(U[-1], N+2, M+2)
+        plt.imshow(im, cmap = "gray")
+
+    if savename:
+        plt.savefig(savename)
+
+    if display:
+        plt.show()
         
-    for i in range(N+2):
-        Dx[i*(M+2):(i+1)*(M+2), i*(M+2):(i+1)*(M+2)] = Bx
+        
 
-    return Dx
-
-def diffX2(M, N):
-    K = (M+2)*(N+2)
+# Finite difference matrix Y-direction
+def diffX(M, N):
     dx = 1/(M+1)
     Bx = (-1 * np.eye(M+2, k = -1) + np.eye(M+2, k = 1))
     Bx[0, :3] = [-3, 4, -1]
@@ -89,45 +111,22 @@ def diffX2(M, N):
     return spsp.block_diag([Bx]*(N+2))
 
 
-def diffY(M, N, scheme = "central"):
+
+# Finite difference matrix Y-direction
+def diffY(M, N):
     K = (M+2)*(N+2)
-    Dy = np.zeros((K, K))
     dy = 1/(N+1)
-    
-    if scheme == "central":
-        Dy = -np.eye(K, k = -(M+2)) + np.eye(K, k = M+2)
-        Dy[:(M+2), :3*(M+2)] = np.hstack((-3*np.identity(M+2), 4*np.identity(M+2), -np.identity(M+2)))
-        Dy[-(M+2):, -3*(M+2):] = np.hstack((np.identity(M+2), -4*np.identity(M+2), 3*np.identity(M+2)))
-        Dy /= 2*dy
-        
-    elif scheme == "forward":
-        Dy = -np.eye(K) + np.eye(K, k = M+2)
-        Dy[:(M+2), :2*(M+2)] = np.hstack((-np.identity(M+2), np.identity(M+2)))
-        Dy[-(M+2):, -2*(M+2):] = np.hstack((-np.identity(M+2), np.identity(M+2)))
-        Dy /= dy
-        
-    else:
-        raise Exception("Invalid scheme in Dy")
-    
-    return Dy  
-
-def diffY2(M, N):
-    K = (M+2)*(N+2)
-    dy = 1/(M+1)
-    By = (-1 * np.eye(M+2, k = -1) + np.eye(M+2, k = 1))
-    By[0, :3] = [-3, 4, -1]
-    By[-1, -3:] = [1, -4, 3]
-    By /= (2*dy)
-    return spsp.block_diag([By]*(N+2))
+    Dy = spsp.diags((-1, 1), (-M-2, M+2), shape = (K, K), format = "lil")
+    Dy[:(M+2), :3*(M+2)] = spsp.hstack((-3*spsp.identity(M+2), 4*spsp.identity(M+2), -spsp.identity(M+2)))
+    Dy[-(M+2):, -3*(M+2):] = spsp.hstack((spsp.identity(M+2), -4*spsp.identity(M+2), 3*spsp.identity(M+2)))
+    return Dy.tocsr()/(2*dy)
 
 
+
+# Matrices to help constuct A(u)
 def support_matrices_X(M, N):
     K = (M+2)*(N+2)
-    
-    Ξx = np.zeros((K, K))
-    Ωx = np.zeros((K, K))
-    Γx = np.zeros((K, K))
-    
+
     #Block matrix for Ξx
     Xx = np.eye(M+2, k = -1) + np.eye(M+2)
     Xx[0, :2] = 0
@@ -143,39 +142,39 @@ def support_matrices_X(M, N):
     Fx[0, :2] = 0
     Fx[-1, -2:] = 0
     
-    # Fill in matrices
-    for i in range(1, N+1):
-        Ξx[i*(M+2):(i+1)*(M+2), i*(M+2):(i+1)*(M+2)] = Xx
-
-    for i in range(1, N+1):
-        Ωx[i*(M+2):(i+1)*(M+2), i*(M+2):(i+1)*(M+2)] = Mx
-
-    for i in range(1, N+1):
-        Γx[i*(M+2):(i+1)*(M+2), i*(M+2):(i+1)*(M+2)] = Fx
-
+    Ξx = spsp.block_diag([Xx]*(N+2))
+    Ωx = spsp.block_diag([Mx]*(N+2))
+    Γx = spsp.block_diag([Fx]*(N+2))
+    
     return Ξx, Ωx, Γx
 
+
+
+# Matrices to help constuct A(u)
 def support_matrices_Y(M, N):
     K = (M+2)*(N+2)
-    Ξy = np.zeros((K, K))
-    Ωy = np.zeros((K, K))
-    Γy = np.zeros((K, K))
-    
-    for i in range(1, N+1):
-        Ξy[i*(M+2)+1:(i+1)*(M+2)-1, (i-1)*(M+2)+1:i*(M+2)-1] = np.identity(M)
-        Ξy[i*(M+2)+1:(i+1)*(M+2)-1, i*(M+2)+1:(i+1)*(M+2)-1] = np.identity(M)
+    Ξy = spsp.diags((np.ones((M+2)*(N+1)), np.ones(K)), (-M-2, 0), format = "lil")
+    Ωy = spsp.diags((-np.ones((M+2)*(N+1)), -2*np.ones(K), -np.ones((M+2)*(N+1))), (-M-2, 0, M+2), format = "lil")
+    Γy = spsp.diags((np.ones(K), np.ones((M+2)*(N+1))), (0, M+2), format = "lil")
+    Ξy[0::M+2, 0::M+2] = 0
+    Ξy[M+1::M+2, M+1::M+2] = 0
+    Ξy[0:M+2] = 0
+    Ξy[-M-2:] = 0
 
-    for i in range(1, N+1):
-        Ωy[i*(M+2)+1:(i+1)*(M+2)-1, (i-1)*(M+2)+1:i*(M+2)-1] = -np.identity(M)
-        Ωy[i*(M+2)+1:(i+1)*(M+2)-1, i*(M+2)+1:(i+1)*(M+2)-1] = -2*np.identity(M)
-        Ωy[i*(M+2)+1:(i+1)*(M+2)-1, (i+1)*(M+2)+1:(i+2)*(M+2)-1] = -np.identity(M)
+    Ωy[0::M+2, 0::M+2] = 0
+    Ωy[M+1::M+2, M+1::M+2] = 0
+    Ωy[0:M+2] = 0
+    Ωy[-M-2:] = 0
 
-    for i in range(1, N+1):
-        Γy[i*(M+2)+1:(i+1)*(M+2)-1, i*(M+2)+1:(i+1)*(M+2)-1] = np.identity(M)
-        Γy[i*(M+2)+1:(i+1)*(M+2)-1, (i+1)*(M+2)+1:(i+2)*(M+2)-1] = np.identity(M)
-    
-    return Ξy, Ωy, Γy
+    Γy[0::M+2, 0::M+2] = 0
+    Γy[M+1::M+2, M+1::M+2] = 0
+    Γy[0:M+2] = 0
+    Γy[-M-2:] = 0
+    return Ξy.tocsr(), Ωy.tocsr(), Γy.tocsr()
 
+
+
+# Put together A(u), spatial difference scheme matrix.
 def assemble_A(u, M, N, g, Dx, Dy, Ξx, Ωx, Γx, Ξy, Ωy, Γy):
     dx = 1/(M+1)
     dy = 1/(N+1)
@@ -198,6 +197,8 @@ def assemble_A(u, M, N, g, Dx, Dy, Ξx, Ωx, Γx, Ξy, Ωy, Γy):
     return A
 
 
+
+# Print current picture while iterating
 def iteration_echo(M, N, G, u):
     K = (M+2)*(N+2)
 
@@ -211,6 +212,8 @@ def iteration_echo(M, N, G, u):
     plt.show()
 
 
+
+# Explicit solver for difference scheme
 def solve_FE(u0, g, M, N, T, dt, echo = False):
     dx = 1/(M+1)
     dy = 1/(N+1)
@@ -227,15 +230,16 @@ def solve_FE(u0, g, M, N, T, dt, echo = False):
     
     for it in range(T-1):
         A = assemble_A(U[it], M, N, g, Dx, Dy, Ξx, Ωx, Γx, Ξy, Ωy, Γy)
-        U[it+1] = U[it]  + dt * A.dot(U[it])
+        U[it+1] = U[it] + dt * A.dot(U[it])
         
         if echo:
             if it % (T//10) == 0:
                 G = g(Dx.dot(U[it])**2 + Dy.dot(U[it])**2)
-                iteration_echo(M, N, G, A, Dy, Dx, U[it])            
+                iteration_echo(M, N, G, U[it])            
     return U
 
 
+# Semi-implicit(Backward Euler), solver for difference scheme
 def solve_BE(u0, g, M, N, T, dt, echo = False):
     dx = 1/(M+1)
     dy = 1/(N+1)
@@ -261,7 +265,7 @@ def solve_BE(u0, g, M, N, T, dt, echo = False):
     return U
 
 
-# Solve equation using semi-implicit 
+# Semi-implicit(Crank-Nicholson) solver for difference scheme
 def solve_CN(u0, g, M, N, T, dt, echo = False):
     dx = 1/(M+1)
     dy = 1/(N+1)
@@ -278,7 +282,6 @@ def solve_CN(u0, g, M, N, T, dt, echo = False):
 
     for it in range(T-1):
         A = assemble_A(U[it], M, N, g, Dx, Dy, Ξx, Ωx, Γx, Ξy, Ωy, Γy)
-        
         U[it+1] = spla.spsolve(spsp.identity((M+2)*(N+2)) - dt/2 * A, (spsp.identity((M+2)*(N+2)) + dt/2 *A).dot(U[it]))
         
         if echo:
@@ -319,56 +322,23 @@ def solve_RGB_BE(u0, g, M, N, T, dt, echo = False):
                 plt.show()
     return U
 
-def before_after_2D(U, N, M, savename = None, display = True):
-    skip = U.shape[0]//5
-    plt.figure()
-    if (len(U.shape) == 3):
-        plt.subplot(2, 3, 1)
-        im = array_to_image(U[0], N+2, M+2)
-        plt.imshow(im)
-        for i in range(2, 6):            
-            plt.subplot(2, 3, i)
-            im = array_to_image(U[(i-1)*skip], N+2, M+2)
-            plt.imshow(im)
-        plt.subplot(236)
-        im = array_to_image(U[-1], N+2, M+2)
-        plt.imshow(im)
-
-    else:
-        plt.subplot(2, 3, 1)
-        im = array_to_image(U[0], N+2, M+2)
-        plt.imshow(im, cmap = "gray")
-        for i in range(2, 6):            
-            plt.subplot(2, 3, i)
-            im = array_to_image(U[(i-1)*skip], N+2, M+2)
-            plt.imshow(im, cmap = "gray")
-        plt.subplot(2, 3, 6)
-        im = array_to_image(U[-1], N+2, M+2)
-        plt.imshow(im, cmap = "gray")
-
-    if savename:
-        plt.savefig(savename)
-
-    if display:
-        plt.show()
-
 
 if __name__ == "__main__":
-    M, N = 126, 126
+    M, N = 256, 256
     K = (M+2) * (N+2)
 
-    T = 100
-    dt = 1
+    T = 500
+    dt = 1e-1
 
     g = lambda s: 1/(1+s)
 
     I = load_image("./images/lena-128x128.jpg", (M+2, N+2))
-    I = add_noise2D(I, scale = 35)
+    I = add_noise2D(I, scale = 40)
     U = solve_BE(I.reshape(K), g, M, N, T, dt)
     before_after_2D(U, N, M, savename = "./figures/lena128.png")
 
     I = load_image("./images/dali.jpg", (M+2, N+2))
-    I = add_noise2D(I, scale = 30)
+    I = add_noise2D(I, scale = 50)
     U = solve_RGB_BE(I.reshape(K, 3), g, M, N, T, dt)
     before_after_2D(U, N, M, savename = "./figures/dali128.png")
 
