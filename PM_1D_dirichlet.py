@@ -86,8 +86,11 @@ def solve_FE(u0, diffusion, M, T, dt, echo = False):
         A = assemble_A(U[it], M, diffusion, Dx, Ξ, Ω, Γ)
         U[it+1] = U[it] + dt * A.dot(U[it])
         if echo:
-            if it % (T//30) == 0:
-                echo_output(U[it])
+            try: 
+                if it % (T//10) == 0:
+                    echo_output(U[it])
+            except:
+                continue
     return U
     
     
@@ -103,8 +106,8 @@ def solve_BE(u0, diffusion, M, T, dt, echo = False):
     for it in range(T-1):
         A = assemble_A(U[it], M, diffusion, Dx, Ξ, Ω, Γ)
         U[it+1] = spla.spsolve(spsp.identity(M+2) - dt * A, U[it])
-        if echo:
-            if it % (T//30) == 0:
+        if echo and T > 10:
+            if it % (T//10) == 0:
                 echo_output(U[it])
     return U
         
@@ -138,13 +141,13 @@ if __name__ == "__main__":
     M = 600
     x = np.linspace(0, 6, M+2)
 
-    T = 100
+    T = 1000
     dt = 1e-3
 
     g = lambda s: 1/(1+s)
-    g_exp = lambda s: np.exp(-s)
-
-    U = solve_FE(f(x, 30), g, M , T, dt)
-    U_exp = solve_FE(f(x, 30), g_exp, M, T, dt)
+    U = solve_BE(f(x, 30), g, M , T, dt)
     before_after_1D(U)
-    before_efter_1D(U_exp)
+
+    #g_exp = lambda s: np.exp(-s)
+    #U_exp = solve_BE(f(x, 30), g_exp, M, T, dt)
+    #before_after_1D(U_exp)
