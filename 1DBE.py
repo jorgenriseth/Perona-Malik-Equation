@@ -36,7 +36,7 @@ def F(U, i, g, dx, boundary):
     return res
 
 
-def f(U, Uprev, dt, g, dx):
+def f(U, Uprev, dt, g, dx, crank=False):
     out = [U[0] - Uprev[0]]
     for i in range(1, len(U)-1):
         if i == 1:
@@ -45,15 +45,18 @@ def f(U, Uprev, dt, g, dx):
             boundary = 1
         else:
             boundary = 0
-        out.append(U[i] - dt*F(U, i, g, dx, boundary) - Uprev[i])
+        if crank:
+            out.append(U[i] - (dt / 2) * (F(U, i, g, dx, boundary) + F(Uprev, i, g, dx, boundary)) - Uprev[i])
+        else:
+            out.append(U[i] - dt*F(U, i, g, dx, boundary) - Uprev[i])
     out.append(U[-1] - Uprev[-1])
     return out
 
 
-M = 100
+M = 300
 dx = 6/(M+1)
-dt = 0.005
-N = 100
+N = 200
+dt = 1/N*1e-01  # 0.0005
 alpha = 30
 
 U = np.zeros((N,M+2))
@@ -61,7 +64,9 @@ for i in range(M+2):
     U[0][i] = f_init(i*dx, alpha)
 
 for n in range(1, N):
-    U[n] = spop.fsolve(f, U[n-1], (U[n-1], dt, g, dx))
+    U[n] = spop.fsolve(f, U[n-1], (U[n-1], dt, g, dx), xtol=0.001)
+    if n % 10 == 0:
+        print("Iter:", n)
 
 print("fig")
 
