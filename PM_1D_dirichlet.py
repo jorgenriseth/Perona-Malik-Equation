@@ -3,6 +3,8 @@ import scipy.sparse as spsp
 import scipy.sparse.linalg as spla
 import matplotlib.pyplot as plt
 
+#import diffusions as func
+
 def before_after_1D(U):
     plt.figure(figsize = (12, 12))
     plt.subplot(211)
@@ -144,7 +146,9 @@ if __name__ == "__main__":
     T = 1000
     dt = 1e-3
 
-    g = lambda s: 1/(1+s)
+    g = func.rational(1)
+
+
     U = solve_BE(f(x, 30), g, M , T, dt)
     before_after_1D(U)
 

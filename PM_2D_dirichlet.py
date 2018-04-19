@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.sparse as spsp
 import scipy.sparse.linalg as spla
+
+import diffusions as func
 from PIL import Image
 
 # Load image from file to numpy array
@@ -322,23 +324,46 @@ def solve_RGB_BE(u0, g, M, N, T, dt, echo = False):
                 plt.show()
     return U
 
+def F(x, y, alpha):
+    smooth = np.tanh(alpha*x) + np.tanh(alpha*y)
+    noiseX = 0.1*np.sin(5*x)**2 * np.sin(50*x)
+    noiseU = 0.1*np.sin(5*y)**2 * np.sin(50*y)
+    return smooth + noiseX + noiseY
 
-if __name__ == "__main__":
-    M, N = 256, 256
+def savename(image_name, M, N, T, dt, funcname):
+    name = "./figures/"
+    name += str(M) + "x" + str(N) + "_"
+    name += str(T) + "_" + str(dt) + "_"
+    name += + str(funcname) + "-"
+    return name + image_name 
+
+
+if __name__== "__main__":
+    M, N = 128, 128
     K = (M+2) * (N+2)
 
-    T = 500
-    dt = 1e-1
+    T = 200
+    dt = 1
 
-    g = lambda s: 1/(1+s)
+    c = 1
+    diffusion = 0
+    g = func.choose_function(diffusion, c)
 
-    I = load_image("./images/lena-128x128.jpg", (M+2, N+2))
+
+    imname = "pgv1a.jpg"
+    I = load_image("./images/"+imname, (M+2, N+2))
+    I = add_noise2D(I, scale = 35)
+    U = solve_RGB_BE(I.reshape(K, 3), g, M, N, T, dt, echo = False)
+    before_after_2D(U, N, M, savename = savename(imname, M+2, N+2, T, dt))
+
+    imname = "lena-128x128.jpg"
+    I = load_image("./images/"+imname, (M+2, N+2))
     I = add_noise2D(I, scale = 40)
     U = solve_BE(I.reshape(K), g, M, N, T, dt)
-    before_after_2D(U, N, M, savename = "./figures/lena128.png")
+    before_after_2D(U, N, M, savename = savename(imname, M+2, N+2, T, dt))
 
-    I = load_image("./images/dali.jpg", (M+2, N+2))
-    I = add_noise2D(I, scale = 50)
+    imname = "dali.jpg"
+    I = load_image("./images/"+imname, (M+2, N+2))
+    I = add_noise2D(I, scale = 35)
     U = solve_RGB_BE(I.reshape(K, 3), g, M, N, T, dt)
-    before_after_2D(U, N, M, savename = "./figures/dali128.png")
-
+    before_after_2D(U, N, M, savename = savename(imname, M+2, N+2, T, dt))
