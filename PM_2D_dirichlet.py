@@ -55,7 +55,8 @@ def add_noise2D(I, scale = 10):
         I[1:-1, 1:-1] += np.random.randint(-scale, scale, size = (M, N, 3))
     else:
         I[1:-1, 1:-1] += np.random.randint(-scale, scale, size = (M,N))
-    return np.minimum(np.maximum(0, I), 255)
+    #return np.minimum(np.maximum(0, I), 255)
+    return I
     
     
     
@@ -112,7 +113,7 @@ def iteration_echo(M, N, G, u):
     plt.imshow(u.reshape(N+2, M+2), cmap = "gray", vmin = 0, vmax = 255)
     
     plt.subplot(122)
-    plt.imshow(G.reshape(N+2, M+2), cmap = "gray", vmax = 5e-2)
+    plt.imshow(G.reshape(N+2, M+2), cmap = "gray")
 
     plt.show()
 
@@ -237,7 +238,7 @@ def savename(image_name, M, N, T, dt, funcname):
     name = "./figures/"
     name += str(M) + "x" + str(N) + "_"
     name += str(T) + "_" + str(dt) + "_"
-    name += + str(funcname) + "-"
+    name += str(funcname) + "-"
     return name + image_name 
 
 

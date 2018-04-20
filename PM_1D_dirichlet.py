@@ -15,15 +15,15 @@ def before_after_1D(U):
     plt.show()
 
 # Create random 1D function
-def generate_random1D(M, scale = 50):
+def generate_random1D(M, scale = 0.1):
     I = np.zeros(M+2)
-    s = (M + 2)//5
-    for i in range(5):
-        I[i*s:(i+1)*s+1] = np.random.randint(0, 2*scale)
+    s = (M + 2)//7
+    for i in range(7):
+        I[i*s:(i+1)*s+1] = np.random.randint(0, 5)
     
     I[-1] = I[-2]
     # Add noise to interior points
-    I[1:-1] = I[1:-1] + np.random.normal(0, 1, size = M)
+    I[1:-1] = I[1:-1] + np.random.normal(0, scale, size = M)
     return I
 
 def echo_output(u):
