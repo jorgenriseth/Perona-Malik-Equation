@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt 
-from PM_1D_dirichlet import diffX
+from schemes import diffX1D
 
 
 def heat(c = 1):
@@ -9,8 +9,6 @@ def heat(c = 1):
 def rational(c = 1):
     return lambda s: 1/(1+s/c**2)
 
-def diff_rational(c = 1):
-    return lambda s: - s/c**2 * rational(c)(s)**2
 
 def exponential(c = 1):
     return lambda s: np.exp(-s/(2 * c**2))
@@ -123,7 +121,7 @@ if __name__ == "__main__":
     plt.savefig("./figures/flux_functions.png")
     plt.show()
 
-    Dx = diffX(M)
+    Dx = diffX1D(M)
     plt.figure(figsize=(12, 8))
     c = 1
     plt.subplot(211)

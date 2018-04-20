@@ -3,7 +3,8 @@ import scipy.sparse as spsp
 import scipy.sparse.linalg as spla
 import matplotlib.pyplot as plt
 
-#import diffusions as func
+from schemes import *
+import diffusions as func
 
 def before_after_1D(U):
     plt.figure(figsize = (12, 12))
@@ -13,57 +14,17 @@ def before_after_1D(U):
     plt.plot(U[-1])
     plt.show()
 
-
 # Create random 1D function
-def generate_random1D(M):
+def generate_random1D(M, scale = 50):
     I = np.zeros(M+2)
     s = (M + 2)//5
     for i in range(5):
-        I[i*s:(i+1)*s+1] = 10*np.random.randint(1, 5)
-        
+        I[i*s:(i+1)*s+1] = np.random.randint(0, 2*scale)
+    
+    I[-1] = I[-2]
     # Add noise to interior points
-    I[1:-1] = I[1:-1] + np.random.normal(0, 2, size = M)
+    I[1:-1] = I[1:-1] + np.random.normal(0, 1, size = M)
     return I
-
-
-# Return differentiation matrix, central differences
-def diffX(M):
-    dx = 1/(M+1)
-
-    Dx = -1 * np.eye(M+2, k = -1) + np.eye(M+2, k = 1)
-    Dx[0, :3] = [-3, 4, -1]
-    Dx[-1, -3:] = [1, -4, 3]
-    Dx /= 2*dx
-    return Dx
-
-# Construction Matrices for A-matrix
-def support_matrices(M):
-    Ξ = np.eye(M+2, k = -1) + np.eye(M+2)
-    Ξ[0, :2] = 0
-    Ξ[-1, -2:] = 0
-    
-    Ω = - np.eye(M+2, k = -1) - 2 * np.eye(M+2) - np.eye(M+2, k = 1)
-    Ω[0, :3] = 0
-    Ω[-1, -3:] = 0
-    
-    Γ = np.eye(M+2) + np.eye(M+2, k = 1)
-    Γ[0, :3] = 0
-    Γ[-1, -3:] = 0
-    
-    return Ξ, Ω, Γ
-
-# Assemble A(u). compact differnce scheme matrix
-def assemble_A(u, M, diffusion, Dx, Ξ, Ω, Γ):
-    dx = 1/(M+1)
-    G = diffusion(Dx.dot(u)**2)
-    ξ = Ξ.dot(G)
-    ω = Ω.dot(G)
-    γ = Γ.dot(G)
-    
-    diags = (ξ[1:], ω, γ[:-1])
-    A = spsp.diags(diags, (-1, 0, 1))/(2*dx**2)
-    return A
-
 
 def echo_output(u):
     plt.figure()
@@ -81,11 +42,11 @@ def solve_FE(u0, diffusion, M, T, dt, echo = False):
     
     
     # Recurring matrices
-    Dx = diffX(M)
+    Dx = diffX1D(M)
     Ξ, Ω, Γ = support_matrices(M)
     
     for it in range(T-1):
-        A = assemble_A(U[it], M, diffusion, Dx, Ξ, Ω, Γ)
+        A = assemble_A1D(U[it], M, diffusion, Dx, Ξ, Ω, Γ)
         U[it+1] = U[it] + dt * A.dot(U[it])
         if echo:
             try: 
@@ -102,11 +63,11 @@ def solve_BE(u0, diffusion, M, T, dt, echo = False):
     U = np.zeros((T, M+2))
     U[0] = u0
     
-    Dx = diffX(M)
+    Dx = diffX1D(M)
     Ξ, Ω, Γ = support_matrices(M)
     
     for it in range(T-1):
-        A = assemble_A(U[it], M, diffusion, Dx, Ξ, Ω, Γ)
+        A = assemble_A1D(U[it], M, diffusion, Dx, Ξ, Ω, Γ)
         U[it+1] = spla.spsolve(spsp.identity(M+2) - dt * A, U[it])
         if echo and T > 10:
             if it % (T//10) == 0:
@@ -120,11 +81,11 @@ def solve_CN(u0, diffusion, M, T, dt, echo = False):
     U = np.zeros((T, M+2))
     U[0] = u0
     
-    Dx = diffX(M)
+    Dx = diffX1D(M)
     Ξ, Ω, Γ = support_matrices(M)
     
     for it in range(T-1):
-        A = assemble_A(U[it], M, diffusion, Dx, Ξ, Ω, Γ)
+        A = assemble_A1D(U[it], M, diffusion, Dx, Ξ, Ω, Γ)
         U[it+1] = spla.spsolve(spsp.identity(M+2) + dt * A, (spsp.identity(M+2) - dt*A).dot(U[it]))
         if echo:
             if it % (T//10) == 0:
@@ -134,9 +95,9 @@ def solve_CN(u0, diffusion, M, T, dt, echo = False):
 #################################################################
 
 # Test function
-def f(x, alpha):
+def f(x, alpha, scale = 0.1):
     first = 5-np.tanh(alpha*(x-1))-np.tanh(alpha*(x-2))
-    second = np.tanh(alpha*(x-4)) + np.tanh(alpha*(x-5)) + 0.1*(np.sin(5*x))**2*np.sin(50*x)
+    second = np.tanh(alpha*(x-4)) + np.tanh(alpha*(x-5)) + scale*(np.sin(5*x))**2*np.sin(50*x)
     return first+second
 
 if __name__ == "__main__":
